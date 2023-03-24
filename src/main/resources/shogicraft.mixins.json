@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "com.hexagram2021.shogicraft.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "shogicraft.refmap.json",
+  "minVersion": "0.8",
+  "mixins": [
+  ],
+  "client": [
+  ]
+}

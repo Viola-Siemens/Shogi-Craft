@@ -1,0 +1,28 @@
+modLoader="javafml"
+loaderVersion="[36,)"
+license="GNU General Public License v3.0"
+issueTrackerURL="https://github.com/Viola-Siemens/Shogi-Craft/issues"
+
+[[mods]]
+modId="shogicraft"
+version="${file.jarVersion}"
+displayName="Shogi Craft"
+logoFile="logo.png"
+credits="Liu Dongyu"
+authors="Hexagram"
+description='''
+You can play Shogi, a Japanese game similar to chess, in minecraft!
+'''
+
+[[dependencies.shogicraft]]
+    modId="forge"
+    mandatory=true
+    versionRange="[36,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.shogicraft]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.16.5,1.17)"
+    ordering="NONE"
+    side="BOTH"
