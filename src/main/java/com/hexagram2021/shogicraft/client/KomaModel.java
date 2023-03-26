@@ -1,18 +1,18 @@
 package com.hexagram2021.shogicraft.client;
 
 
+import com.hexagram2021.shogicraft.common.entities.KomaEntity;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.vertex.IVertexBuilder;
 import net.minecraft.client.renderer.entity.model.EntityModel;
 import net.minecraft.client.renderer.model.ModelRenderer;
-import net.minecraft.entity.Entity;
 
 import javax.annotation.Nonnull;
 
-public class ShogiModel<T extends Entity> extends EntityModel<T> {
+public class KomaModel<T extends KomaEntity> extends EntityModel<T> {
 	private final ModelRenderer root;
 
-	public ShogiModel() {
+	public KomaModel() {
 		this.texWidth = 64;
 		this.texHeight = 32;
 

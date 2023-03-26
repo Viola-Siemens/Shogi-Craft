@@ -5,6 +5,8 @@
   "refmap": "shogicraft.refmap.json",
   "minVersion": "0.8",
   "mixins": [
+    "ServerLevelMixin",
+    "SingleJigsawAccess"
   ],
   "client": [
   ]

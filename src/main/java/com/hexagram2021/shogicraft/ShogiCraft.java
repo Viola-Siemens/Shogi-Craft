@@ -2,7 +2,7 @@ package com.hexagram2021.shogicraft;
 
 import com.hexagram2021.shogicraft.common.SGCContent;
 import com.hexagram2021.shogicraft.common.utils.SGCLogger;
-import net.minecraftforge.api.distmarker.Dist;
+import com.hexagram2021.shogicraft.common.world.Villages;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
@@ -10,6 +10,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.apache.logging.log4j.LogManager;
 
+@SuppressWarnings("unused")
 @Mod(ShogiCraft.MODID)
 public class ShogiCraft {
 	public static final String MODID = "shogicraft";
