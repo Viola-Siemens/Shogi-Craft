@@ -54,7 +54,7 @@ public class KomaItem extends Item {
 				!direction.equals(Direction.UP)) {
 			return ActionResultType.FAIL;
 		}
-		if(player != null && player.isShiftKeyDown()) {
+		if(player != null && player.isSecondaryUseActive()) {
 			return ActionResultType.PASS;
 		}
 
@@ -70,13 +70,13 @@ public class KomaItem extends Item {
 			koma.setKomaType(this.type);
 			if(nbt != null) {
 				if(nbt.contains("KomaDirection", Constants.NBT.TAG_STRING)) {
-					Direction directPlacement = Direction.byName(nbt.getString("Direction"));
+					Direction directPlacement = Direction.byName(nbt.getString("KomaDirection"));
 					if (directPlacement != null) {
 						koma.setKomaDefaultRotation(directPlacement);
 					}
 				}
 				if(nbt.contains("KomaSente", Constants.NBT.TAG_BYTE)) {
-					koma.setKomaRotation(nbt.getBoolean("Sente"));
+					koma.setKomaRotation(nbt.getBoolean("KomaSente"));
 				}
 			}
 			itemstack.shrink(1);
@@ -88,7 +88,7 @@ public class KomaItem extends Item {
 	public ActionResult<ItemStack> use(@Nonnull World level, PlayerEntity player, @Nonnull Hand hand) {
 		ItemStack itemstack = player.getItemInHand(hand);
 		KomaEntity.Type promoteTo = this.type.getPromoteTo();
-		if(!level.isClientSide && promoteTo != null && player.isShiftKeyDown()) {
+		if(!level.isClientSide && promoteTo != null && player.isSecondaryUseActive()) {
 			player.setItemInHand(hand, new ItemStack(SGCItems.KOMA_ITEMS.get(promoteTo), itemstack.getCount()));
 			return ActionResult.pass(itemstack);
 		}

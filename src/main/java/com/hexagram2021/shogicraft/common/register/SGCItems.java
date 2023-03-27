@@ -31,7 +31,7 @@ public class SGCItems {
 		for(KomaEntity.Type type: KomaEntity.Type.values()) {
 			KOMA_ITEMS.put(type, new ItemEntry<>(
 					"koma_" + type.name().toLowerCase(Locale.ROOT),
-					() -> new Item.Properties().tab(SHOGI_CRAFT),
+					() -> new Item.Properties().tab(SHOGI_CRAFT).stacksTo(1),
 					props -> new KomaItem(type, props)
 			));
 		}

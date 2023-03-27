@@ -1,30 +1,43 @@
 package com.hexagram2021.shogicraft.common.entities;
 
+import com.google.common.collect.ImmutableList;
 import com.hexagram2021.shogicraft.common.register.SGCBlocks;
 import com.hexagram2021.shogicraft.common.register.SGCEntities;
+import com.hexagram2021.shogicraft.common.register.SGCItems;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.IPacket;
 import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.network.datasync.EntityDataManager;
+import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Direction;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.network.NetworkHooks;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 
 public class KomaEntity extends Entity {
 	private static final DataParameter<Integer> DATA_TYPE = EntityDataManager.defineId(KomaEntity.class, DataSerializers.INT);
 	private static final DataParameter<Boolean> DATA_SENTE = EntityDataManager.defineId(KomaEntity.class, DataSerializers.BOOLEAN);
+
+	public static final List<List<IPossibleMove>> POSSIBLE_MOVES_BY_TYPE = new ArrayList<>();
 
 	public KomaEntity(EntityType<? extends KomaEntity> type, World level) {
 		super(type, level);
@@ -69,17 +82,43 @@ public class KomaEntity extends Entity {
 
 	@Override
 	protected void readAdditionalSaveData(@Nonnull CompoundNBT nbt) {
-
+		if(nbt.contains("Type", Constants.NBT.TAG_INT)) {
+			this.setKomaType(Type.BY_ID[nbt.getInt("Type")]);
+		}
+		if(nbt.contains("Sente", Constants.NBT.TAG_BYTE)) {
+			this.setKomaRotation(nbt.getBoolean("Sente"));
+		}
 	}
 
 	@Override
 	protected void addAdditionalSaveData(@Nonnull CompoundNBT nbt) {
-
+		nbt.putInt("Type", this.getKomaType().getOrdinal());
+		nbt.putBoolean("Sente", this.getKomaRotation());
 	}
 
 	@Override @Nonnull
 	public IPacket<?> getAddEntityPacket() {
 		return NetworkHooks.getEntitySpawningPacket(this);
+	}
+
+	@Override @Nonnull
+	public ActionResultType interact(PlayerEntity player, @Nonnull Hand hand) {
+		if(player.level.isClientSide) {
+			return ActionResultType.SUCCESS;
+		}
+		ItemStack itemStack = player.getItemInHand(hand);
+		if(itemStack.isEmpty()) {
+			ItemStack komaItemStack = new ItemStack(SGCItems.KOMA_ITEMS.get(this.getKomaType()));
+			CompoundNBT nbt = komaItemStack.getOrCreateTag();
+			nbt.putString("KomaDirection", Direction.fromYRot(this.yRot).getName());
+			nbt.putBoolean("KomaSente", this.getKomaRotation());
+
+			player.setItemInHand(hand, komaItemStack);
+			this.remove();
+
+			return ActionResultType.SUCCESS;
+		}
+		return super.interact(player, hand);
 	}
 
 	public Type getKomaType() {
@@ -138,5 +177,101 @@ public class KomaEntity extends Entity {
 		public Type getPromoteTo() {
 			return this.promoteTo;
 		}
+	}
+
+	public interface IPossibleMove {
+		void markPossibleMoves(int x, int z, BiFunction<Integer, Integer, Boolean> hasKoma, BiConsumer<Integer, Integer> marker);
+
+		static boolean isXZLegal(int v) {
+			return v >= 1 && v <= 9;
+		}
+	}
+
+	public static class DirectMove implements IPossibleMove {
+		final int dx;
+		final int dz;
+
+		public DirectMove(int dx, int dz) {
+			this.dx = dx;
+			this.dz = dz;
+		}
+
+		@Override
+		public void markPossibleMoves(int x, int z, BiFunction<Integer, Integer, Boolean> hasKoma, BiConsumer<Integer, Integer> marker) {
+			int markX = x + this.dx;
+			int markZ = z + this.dz;
+			if(IPossibleMove.isXZLegal(markX) && IPossibleMove.isXZLegal(markZ)) {
+				marker.accept(markX, markZ);
+			}
+		}
+	}
+
+	public static class LineMove implements IPossibleMove {
+		final int dx;
+		final int dz;
+
+		public LineMove(int dx, int dz) {
+			this.dx = dx;
+			this.dz = dz;
+		}
+
+		@Override
+		public void markPossibleMoves(int x, int z, BiFunction<Integer, Integer, Boolean> hasKoma, BiConsumer<Integer, Integer> marker) {
+			for(int i = 1; i < 9; ++i) {
+				int markX = x + i * this.dx;
+				int markZ = z + i * this.dz;
+				if(IPossibleMove.isXZLegal(markX) && IPossibleMove.isXZLegal(markZ)) {
+					marker.accept(markX, markZ);
+					if(hasKoma.apply(markX, markZ)) {
+						break;
+					}
+				} else {
+					break;
+				}
+			}
+		}
+	}
+
+	static {
+		ImmutableList<IPossibleMove> kin_moves = ImmutableList.of(
+				new DirectMove(1, 1),	new DirectMove(0, 1),	new DirectMove(-1, 1),
+				new DirectMove(1, 0),									new DirectMove(-1, 0),
+												new DirectMove(0, -1)
+		);
+		POSSIBLE_MOVES_BY_TYPE.add(Type.FU.getOrdinal(), ImmutableList.of(new DirectMove(0, 1)));
+		POSSIBLE_MOVES_BY_TYPE.add(Type.KY.getOrdinal(), ImmutableList.of(new LineMove(0, 1)));
+		POSSIBLE_MOVES_BY_TYPE.add(Type.KE.getOrdinal(), ImmutableList.of(new DirectMove(1, 2), new DirectMove(-1, 2)));
+		POSSIBLE_MOVES_BY_TYPE.add(Type.GI.getOrdinal(), ImmutableList.of(
+				new DirectMove(1, 1),	new DirectMove(0, 1),	new DirectMove(-1, 1),
+				new DirectMove(1, -1),									new DirectMove(-1, -1)
+		));
+		POSSIBLE_MOVES_BY_TYPE.add(Type.KI.getOrdinal(), kin_moves);
+		POSSIBLE_MOVES_BY_TYPE.add(Type.KA.getOrdinal(), ImmutableList.of(
+				new LineMove(1, 1),		new LineMove(-1, 1),
+				new LineMove(1, -1),	new LineMove(-1, -1)
+		));
+		POSSIBLE_MOVES_BY_TYPE.add(Type.HI.getOrdinal(), ImmutableList.of(
+				new LineMove(1, 0),		new LineMove(-1, 0),
+				new LineMove(0, 1),		new LineMove(0, -1)
+		));
+		POSSIBLE_MOVES_BY_TYPE.add(Type.TO.getOrdinal(), kin_moves);
+		POSSIBLE_MOVES_BY_TYPE.add(Type.NY.getOrdinal(), kin_moves);
+		POSSIBLE_MOVES_BY_TYPE.add(Type.NK.getOrdinal(), kin_moves);
+		POSSIBLE_MOVES_BY_TYPE.add(Type.NG.getOrdinal(), kin_moves);
+		POSSIBLE_MOVES_BY_TYPE.add(Type.UM.getOrdinal(), ImmutableList.of(
+				new LineMove(1, 1),		new DirectMove(0, 1),	new LineMove(-1, 1),
+				new DirectMove(1, 0),									new DirectMove(-1, 0),
+				new LineMove(1, -1),	new DirectMove(0, -1),	new LineMove(-1, -1)
+		));
+		POSSIBLE_MOVES_BY_TYPE.add(Type.RY.getOrdinal(), ImmutableList.of(
+				new DirectMove(1, 1),	new LineMove(0, 1),		new DirectMove(-1, 1),
+				new LineMove(1, 0),										new LineMove(-1, 0),
+				new DirectMove(1, -1),	new LineMove(0, -1),	new DirectMove(-1, -1)
+		));
+		POSSIBLE_MOVES_BY_TYPE.add(Type.OU.getOrdinal(), ImmutableList.of(
+				new DirectMove(1, 1),	new DirectMove(0, 1),	new DirectMove(-1, 1),
+				new DirectMove(1, 0),									new DirectMove(-1, 0),
+				new DirectMove(1, -1),	new DirectMove(0, -1),	new DirectMove(-1, -1)
+		));
 	}
 }
