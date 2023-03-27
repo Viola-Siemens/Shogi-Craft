@@ -16,7 +16,7 @@ public class SGCEntities {
 
 	public static final RegistryObject<EntityType<KomaEntity>> KOMA = REGISTER.register(
 			"koma", () -> EntityType.Builder.<KomaEntity>of(KomaEntity::new, EntityClassification.MISC)
-					.sized(0.8F, 0.3F)
+					.sized(0.8F, 0.25F)
 					.clientTrackingRange(8)
 					.build(new ResourceLocation(MODID, "koma").toString())
 	);

@@ -10,6 +10,7 @@ import net.minecraft.network.IPacket;
 import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.network.datasync.EntityDataManager;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -22,22 +23,26 @@ import java.util.Arrays;
 import java.util.Comparator;
 
 public class KomaEntity extends Entity {
+	private static final DataParameter<Integer> DATA_TYPE = EntityDataManager.defineId(KomaEntity.class, DataSerializers.INT);
 	private static final DataParameter<Boolean> DATA_SENTE = EntityDataManager.defineId(KomaEntity.class, DataSerializers.BOOLEAN);
 
 	public KomaEntity(EntityType<? extends KomaEntity> type, World level) {
 		super(type, level);
 		this.noPhysics = true;
+		this.setCustomNameVisible(false);
 	}
 
-	public KomaEntity(World level, double x, double y, double z, boolean sente) {
+	public KomaEntity(World level, double x, double y, double z, Type type, boolean sente) {
 		super(SGCEntities.KOMA.get(), level);
 		this.noPhysics = true;
+		this.setCustomNameVisible(false);
 
 		this.setPos(x, y, z);
 		this.xo = x;
 		this.yo = y;
 		this.zo = z;
-		this.setRotation(sente);
+		this.setKomaType(type);
+		this.setKomaRotation(sente);
 	}
 
 	@Override
@@ -46,7 +51,7 @@ public class KomaEntity extends Entity {
 
 		BlockPos blockpos = this.blockPosition();
 		BlockState blockState = this.level.getBlockState(blockpos);
-		if(!blockState.is(SGCBlocks.BOARD_BLOCK.get()) && !blockState.is(SGCBlocks.KOMA_DAI.get())) {
+		if(!blockState.is(SGCBlocks.BOARD_BLOCK.get()) && !blockState.is(SGCBlocks.KOMA_DAI_BLOCK.get())) {
 			this.remove();
 		}
 		this.setPosAndOldPos((double)blockpos.getX() + 0.5D, (double)blockpos.getY() + 0.375D, (double)blockpos.getZ() + 0.5D);
@@ -58,7 +63,8 @@ public class KomaEntity extends Entity {
 
 	@Override
 	protected void defineSynchedData() {
-
+		this.entityData.define(DATA_TYPE, Type.OU.getOrdinal());
+		this.entityData.define(DATA_SENTE, true);
 	}
 
 	@Override
@@ -76,8 +82,24 @@ public class KomaEntity extends Entity {
 		return NetworkHooks.getEntitySpawningPacket(this);
 	}
 
-	public void setRotation(boolean sente) {
+	public Type getKomaType() {
+		return Type.BY_ID[this.entityData.get(DATA_TYPE)];
+	}
+
+	public void setKomaType(Type type) {
+		this.entityData.set(DATA_TYPE, type.getOrdinal());
+	}
+
+	public boolean getKomaRotation() {
+		return this.entityData.get(DATA_SENTE);
+	}
+
+	public void setKomaRotation(boolean sente) {
 		this.entityData.set(DATA_SENTE, sente);
+	}
+
+	public void setKomaDefaultRotation(Direction face) {
+		this.setRot(face.toYRot(), 0.0F);
 	}
 
 	public enum Type {
@@ -110,6 +132,11 @@ public class KomaEntity extends Entity {
 
 		public int getOrdinal() {
 			return this.id;
+		}
+
+		@Nullable
+		public Type getPromoteTo() {
+			return this.promoteTo;
 		}
 	}
 }
